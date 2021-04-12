@@ -1,0 +1,7 @@
+{
+    "name": "corepos/office-plugin-git-status",
+    "description": "Office plugin to check for 'git status' issues in source folder",
+    "type": "corepos-office-plugin",
+    "version": "1.0.0",
+    "license": "GPLv2"
+}
