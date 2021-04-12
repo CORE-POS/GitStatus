@@ -51,7 +51,8 @@ please see that for settings to control behavior.';
         $this->debug = $settings['GitStatusDebug'] === 'true';
 
         // change to root dir of repo, to run our git commands
-        $rootdir = realpath(__DIR__ . '/../../../..');
+        $fannieRoot = rtrim($this->config->get('ROOT'), '/');
+        $rootdir = realpath($fannieRoot . '/..');
         if ($this->debug) {
             $this->stderr("git executable is: {$this->git}\n");
             $this->stderr("rootdir is: $rootdir\n");
