@@ -46,6 +46,7 @@ please see that for settings to control behavior.';
 
     public function run()
     {
+        $this->threshold = $this->config->get('TASK_THRESHOLD');
         $settings = $this->config->get('PLUGIN_SETTINGS');
         $this->git = $settings['GitStatusExecutable'] or 'git';
         $this->debug = $settings['GitStatusDebug'] === 'true';
@@ -54,6 +55,7 @@ please see that for settings to control behavior.';
         $fannieRoot = rtrim($this->config->get('ROOT'), '/');
         $rootdir = realpath($fannieRoot . '/..');
         if ($this->debug) {
+            $this->stderr("threshold is: {$this->threshold}\n");
             $this->stderr("git executable is: {$this->git}\n");
             $this->stderr("rootdir is: $rootdir\n");
         }
@@ -87,9 +89,13 @@ please see that for settings to control behavior.';
 
     private function stderr($text)
     {
+        // always write to stderr
         $fh = fopen('php://stderr', 'a');
         fwrite($fh, $text);
         fclose($fh);
+
+        // also write via normal machinery
+        $this->cronMsg($text, $this->threshold + 1);
     }
 
     private function checkGitStatus()
