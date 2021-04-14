@@ -151,14 +151,18 @@ please see that for settings to control behavior.';
             return false;
         }
 
-        // parse local branch from output
-        $parts = explode('...', $output[0]);
-        $branch = substr($parts[0], 3); // trim off first 3 chars, i.e. '## '
-
-        // parse remote name, and remote branch
-        $remoteParts = explode('/', $parts[1]);
-        $remote = $remoteParts[0];
-        $remoteBranch = $remoteParts[1];
+        // parse branch and remote names from output.
+        // note that an example output here might be:
+        //     ## master...origin/master [behind 1]
+        if (preg_match('/^## (\w+)\.{3}(\w+)\/(\w+)/', $output[0], $matches)) {
+            $branch = $matches[1];
+            $remote = $matches[2];
+            $remoteBranch = $matches[3];
+        } else {
+            $this->log("could not parse branch and remote names!  ", true);
+            $this->log("\n\n{$output[0]}\n", true);
+            return false;
+        }
 
         $this->log("branch is: $branch\n");
         $this->log("remote is: $remote\n");
