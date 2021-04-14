@@ -54,11 +54,9 @@ please see that for settings to control behavior.';
         // change to root dir of repo, to run our git commands
         $fannieRoot = rtrim($this->config->get('ROOT'), '/');
         $rootdir = realpath($fannieRoot . '/..');
-        if ($this->debug) {
-            $this->stderr("threshold is: {$this->threshold}\n");
-            $this->stderr("git executable is: {$this->git}\n");
-            $this->stderr("rootdir is: $rootdir\n");
-        }
+        $this->log("threshold is: {$this->threshold}\n");
+        $this->log("git executable is: {$this->git}\n");
+        $this->log("rootdir is: $rootdir\n");
         chdir($rootdir);
 
         if (!$this->checkGitStatus()) {
@@ -82,20 +80,22 @@ please see that for settings to control behavior.';
             return;
         }
 
-        if ($this->debug) {
-            $this->stderr("made it to the end\n");
-        }
+        $this->log("made it to the end\n");
     }
 
-    private function stderr($text)
+    private function log($text, $stderr = false)
     {
-        // always write to stderr
-        $fh = fopen('php://stderr', 'a');
-        fwrite($fh, $text);
-        fclose($fh);
-
-        // also write via normal machinery
+        // always log to file
+        // (note that we use 'threshold + 1' to ensure this does not also cause
+        // output on STDERR)
         $this->cronMsg($text, $this->threshold + 1);
+
+        // maybe also write to STDERR
+        if ($stderr || $this->debug) {
+            $fh = fopen('php://stderr', 'a');
+            fwrite($fh, $text);
+            fclose($fh);
+        }
     }
 
     private function checkGitStatus()
@@ -104,23 +104,22 @@ please see that for settings to control behavior.';
         exec("{$this->git} status --porcelain", $output, $return_var);
 
         if ($return_var) {
-            $this->stderr("failed to check git status!  ");
+            $this->log("failed to check git status!  ", true);
             $this->showGitStatus();
             return false;
         }
 
         if ($output) {
-            $this->stderr("git status is not clean!  ");
+            $this->log("git status is not clean!  ", true);
             $this->showGitStatus();
-            $this->stderr("\n\nHINT: If you see \"untracked\" files above, which should not be\n"
-                          . "\"officially\" ignored, but you would rather ignore for local status\n"
-                          . "checks, then edit your .git/info/exclude file.\n");
+            $this->log("\n\nHINT: If you see \"untracked\" files above, which should not be\n"
+                       . "\"officially\" ignored, but you would rather ignore for local status\n"
+                       . "checks, then edit your .git/info/exclude file.\n",
+                       true);
             return false;
         }
 
-        if ($this->debug) {
-            $this->stderr("git status is clean\n");
-        }
+        $this->log("git status is clean\n");
         return true;
     }
 
@@ -132,7 +131,8 @@ please see that for settings to control behavior.';
 
     private function showCommandResult($return_var, $output)
     {
-        $this->stderr("return_var is $return_var; output is:\n\n" . implode("\n", $output) . "\n");
+        $this->log("return_var is $return_var; output is:\n\n" . implode("\n", $output) . "\n",
+                   true);
     }
 
     private function identifyGitBranch(&$branch, &$remote, &$remoteBranch)
@@ -140,13 +140,13 @@ please see that for settings to control behavior.';
         exec("{$this->git} status --branch --porcelain", $output, $return_var);
 
         if ($return_var) {
-            $this->stderr("failed to identify git branch!  ");
+            $this->log("failed to identify git branch!  ", true);
             $this->showGitStatus();
             return false;
         }
 
         if (!$output) {
-            $this->stderr("could not determine git branch!  ");
+            $this->log("could not determine git branch!  ", true);
             $this->showGitStatus();
             return false;
         }
@@ -160,11 +160,9 @@ please see that for settings to control behavior.';
         $remote = $remoteParts[0];
         $remoteBranch = $remoteParts[1];
 
-        if ($this->debug) {
-            $this->stderr("branch is: $branch\n");
-            $this->stderr("remote is: $remote\n");
-            $this->stderr("remoteBranch is: $remoteBranch\n");
-        }
+        $this->log("branch is: $branch\n");
+        $this->log("remote is: $remote\n");
+        $this->log("remoteBranch is: $remoteBranch\n");
         return true;
     }
 
@@ -174,13 +172,13 @@ please see that for settings to control behavior.';
         exec('ls -ld .', $output, $return_var);
 
         if ($return_var) {
-            $this->stderr("failed to identify folder owner!  ");
+            $this->log("failed to identify folder owner!  ", true);
             $this->showCommandResult($return_var, $output);
             return false;
         }
 
         if (!$output) {
-            $this->stderr("got no output from folder list!  ");
+            $this->log("got no output from folder list!  ", true);
             $this->showCommandResult($return_var, $output);
             return false;
         }
@@ -189,9 +187,7 @@ please see that for settings to control behavior.';
         $parts = explode(' ', $output[0]);
         $owner = $parts[2];
 
-        if ($this->debug) {
-            $this->stderr("folder owner is: $owner\n");
-        }
+        $this->log("folder owner is: $owner\n");
         return true;
     }
 
@@ -211,20 +207,18 @@ please see that for settings to control behavior.';
         }
 
         if ($return_var) {
-            $this->stderr("failed to fetch remote!  ");
+            $this->log("failed to fetch remote!  ", true);
             $this->showCommandResult($return_var, $output);
             return false;
         }
 
         if ($output) {
-            $this->stderr("unexpected output when fetching remote!  ");
+            $this->log("unexpected output when fetching remote!  ", true);
             $this->showCommandResult($return_var, $output);
             return false;
         }
 
-        if ($this->debug) {
-            $this->stderr("remote commits were fetched\n");
-        }
+        $this->log("remote commits were fetched\n");
         return true;
     }
 
@@ -234,13 +228,13 @@ please see that for settings to control behavior.';
         exec("{$this->git} log ..$remote/$remoteBranch", $output, $return_var);
 
         if ($return_var) {
-            $this->stderr("failed to check for unknown remote commits!  ");
+            $this->log("failed to check for unknown remote commits!  ", true);
             $this->showCommandResult($return_var, $output);
             return false;
         }
 
         if ($output) {
-            $this->stderr("$remote/$remoteBranch has commits not present in workdir!  ");
+            $this->log("$remote/$remoteBranch has commits not present in workdir!  ", true);
             $this->showCommandResult($return_var, $output);
             return false;
         }
@@ -249,20 +243,18 @@ please see that for settings to control behavior.';
         exec("{$this->git} log $remote/$remoteBranch..", $output, $return_var);
 
         if ($return_var) {
-            $this->stderr("failed to check for unknown local commits!  ");
+            $this->log("failed to check for unknown local commits!  ", true);
             $this->showCommandResult($return_var, $output);
             return false;
         }
 
         if ($output) {
-            $this->stderr("there are local commits not present in $remote/$remoteBranch!  ");
+            $this->log("there are local commits not present in $remote/$remoteBranch!  ", true);
             $this->showCommandResult($return_var, $output);
             return false;
         }
 
-        if ($this->debug) {
-            $this->stderr("$remote/$remoteBranch and workdir match\n");
-        }
+        $this->log("$remote/$remoteBranch and workdir match\n");
         return true;
     }
 }
