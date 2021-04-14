@@ -21,6 +21,12 @@ class GitStatus extends COREPOS\Fannie\API\FanniePlugin
             'options' => array("Do not use sudo (e.g.: git fetch origin)" => 'false',
                                "Use sudo (e.g.: sudo -u owner git fetch origin)" => 'true'),
             'default'=>'false'),
+        'GitStatusFailEarly' => array(
+            'label'=>'Failure mode',
+            'description'=>"How failures should be handled when running checks",
+            'options' => array("Fail early, i.e. stop processing when first check fails" => 'true',
+                               "Fail late, i.e. run all checks even if some fail" => 'false'),
+            'default'=>'false'),
         'GitStatusDebug' => array(
             'label'=>'Debug mode',
             'description'=>"Whether to print debug messages.  Note that cron will send email only when there is output.  (The plugin/task does not itself directly send email.)",

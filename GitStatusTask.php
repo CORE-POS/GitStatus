@@ -50,6 +50,7 @@ please see that for settings to control behavior.';
         $settings = $this->config->get('PLUGIN_SETTINGS');
         $this->git = $settings['GitStatusExecutable'] or 'git';
         $this->debug = $settings['GitStatusDebug'] === 'true';
+        $this->failEarly = $settings['GitStatusFailEarly'] === 'true';
 
         // change to root dir of repo, to run our git commands
         $fannieRoot = rtrim($this->config->get('ROOT'), '/');
@@ -57,9 +58,10 @@ please see that for settings to control behavior.';
         $this->log("threshold is: {$this->threshold}\n");
         $this->log("git executable is: {$this->git}\n");
         $this->log("rootdir is: $rootdir\n");
+        $this->log("failEarly is: " . ($this->failEarly ? 'true' : 'false') . "\n");
         chdir($rootdir);
 
-        if (!$this->checkGitStatus()) {
+        if (!$this->checkGitStatus() && $this->failEarly) {
             return;
         }
 
@@ -69,14 +71,21 @@ please see that for settings to control behavior.';
         }
 
         if (!$this->identifyGitBranch($branch, $remote, $remoteBranch)) {
+            // we cannot recover from this, even if failEarly = false
             return;
         }
 
         if (!$this->gitFetchRemote($remote)) {
+            // there is no point in checking ahead/behind if we cannot fetch
+            // i.e. fail here even if failEarly = false
             return;
         }
 
-        if (!$this->checkGitDiff($branch, $remote, $remoteBranch)) {
+        if (!$this->checkLocalIsAhead($branch, $remote, $remoteBranch) && $this->failEarly) {
+            return;
+        }
+
+        if (!$this->checkLocalIsBehind($branch, $remote, $remoteBranch) && $this->failEarly) {
             return;
         }
 
@@ -112,7 +121,7 @@ please see that for settings to control behavior.';
         if ($output) {
             $this->log("git status is not clean!  ", true);
             $this->showGitStatus();
-            $this->log("\n\nHINT: If you see \"untracked\" files above, which should not be\n"
+            $this->log("\nHINT: If you see \"untracked\" files above, which should not be\n"
                        . "\"officially\" ignored, but you would rather ignore for local status\n"
                        . "checks, then edit your .git/info/exclude file.\n",
                        true);
@@ -226,24 +235,9 @@ please see that for settings to control behavior.';
         return true;
     }
 
-    private function checkGitDiff($branch, $remote, $remoteBranch)
+    private function checkLocalIsAhead($branch, $remote, $remoteBranch)
     {
-        // first look for remote commits not found in workdir
-        exec("{$this->git} log ..$remote/$remoteBranch", $output, $return_var);
-
-        if ($return_var) {
-            $this->log("failed to check for unknown remote commits!  ", true);
-            $this->showCommandResult($return_var, $output);
-            return false;
-        }
-
-        if ($output) {
-            $this->log("$remote/$remoteBranch has commits not present in workdir!  ", true);
-            $this->showCommandResult($return_var, $output);
-            return false;
-        }
-
-        // next look for local commits not found in remote
+        // look for local commits not found in remote
         exec("{$this->git} log $remote/$remoteBranch..", $output, $return_var);
 
         if ($return_var) {
@@ -258,7 +252,28 @@ please see that for settings to control behavior.';
             return false;
         }
 
-        $this->log("$remote/$remoteBranch and workdir match\n");
+        $this->log("workdir is not ahead of $remote/$remoteBranch\n");
+        return true;
+    }
+
+    private function checkLocalIsBehind($branch, $remote, $remoteBranch)
+    {
+        // look for remote commits not found in workdir
+        exec("{$this->git} log ..$remote/$remoteBranch", $output, $return_var);
+
+        if ($return_var) {
+            $this->log("failed to check for unknown remote commits!  ", true);
+            $this->showCommandResult($return_var, $output);
+            return false;
+        }
+
+        if ($output) {
+            $this->log("$remote/$remoteBranch has commits not present in workdir!  ", true);
+            $this->showCommandResult($return_var, $output);
+            return false;
+        }
+
+        $this->log("workdir is not behind $remote/$remoteBranch\n");
         return true;
     }
 }
