@@ -46,7 +46,15 @@ please see that for settings to control behavior.';
 
     public function run()
     {
-        $this->threshold = $this->config->get('TASK_THRESHOLD');
+        // nb. log level should "exceed" threshold so normal cronMsg()
+        // call does not cause output to stderr
+        $this->logLevel = FannieLogger::DEBUG;
+        $threshold = $this->config->get('TASK_THRESHOLD');
+        if ($this->logLevel <= $threshold) {
+            $this->logLevel = $threshold + 1;
+        }
+
+        // fetch plugin settings
         $settings = $this->config->get('PLUGIN_SETTINGS');
         $this->git = $settings['GitStatusExecutable'] or 'git';
         $this->debug = $settings['GitStatusDebug'] === 'true';
@@ -55,7 +63,6 @@ please see that for settings to control behavior.';
         // change to root dir of repo, to run our git commands
         $fannieRoot = rtrim($this->config->get('ROOT'), '/');
         $rootdir = realpath($fannieRoot . '/..');
-        $this->log("threshold is: {$this->threshold}\n");
         $this->log("git executable is: {$this->git}\n");
         $this->log("rootdir is: $rootdir\n");
         $this->log("failEarly is: " . ($this->failEarly ? 'true' : 'false') . "\n");
@@ -95,9 +102,7 @@ please see that for settings to control behavior.';
     private function log($text, $stderr = false)
     {
         // always log to file
-        // (note that we use 'threshold + 1' to ensure this does not also cause
-        // output on STDERR)
-        $this->cronMsg($text, $this->threshold + 1);
+        $this->cronMsg($text, $this->logLevel);
 
         // maybe also write to STDERR
         if ($stderr || $this->debug) {
@@ -123,7 +128,7 @@ please see that for settings to control behavior.';
             $this->showGitStatus();
             $this->log("\nHINT: If you see \"untracked\" files above, which should not be\n"
                        . "\"officially\" ignored, but you would rather ignore for local status\n"
-                       . "checks, then edit your .git/info/exclude file.\n",
+                       . "checks, then edit your .git/info/exclude file.\n\n",
                        true);
             return false;
         }
