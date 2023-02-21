@@ -59,6 +59,7 @@ please see that for settings to control behavior.';
         $this->git = $settings['GitStatusExecutable'] or 'git';
         $this->debug = $settings['GitStatusDebug'] === 'true';
         $this->failEarly = $settings['GitStatusFailEarly'] === 'true';
+        $this->ignoreUntracked = $settings['GitStatusIgnoreUntracked'] === 'true' ? '-uno' : '';
 
         // change to root dir of repo, to run our git commands
         $fannieRoot = rtrim($this->config->get('ROOT'), '/');
@@ -115,7 +116,7 @@ please see that for settings to control behavior.';
     private function checkGitStatus()
     {
         // use --porcelain so we can assume "empty output means clean status"
-        exec("{$this->git} status --porcelain", $output, $return_var);
+        exec("{$this->git} status {$this->ignoreUntracked} --porcelain", $output, $return_var);
 
         if ($return_var) {
             $this->log("failed to check git status!  ", true);
@@ -139,7 +140,7 @@ please see that for settings to control behavior.';
 
     private function showGitStatus()
     {
-        exec("{$this->git} status", $output, $return_var);
+        exec("{$this->git} status {$this->ignoreUntracked}", $output, $return_var);
         $this->showCommandResult($return_var, $output);
     }
 

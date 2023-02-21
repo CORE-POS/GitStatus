@@ -27,6 +27,12 @@ class GitStatus extends COREPOS\Fannie\API\FanniePlugin
             'options' => array("Fail early, i.e. stop processing when first check fails" => 'true',
                                "Fail late, i.e. run all checks even if some fail" => 'false'),
             'default'=>'false'),
+        'GitStatusIgnoreUntracked' => array(
+            'label'=>'Ignore untracked',
+            'description'=>"Whether to report, or ignore, untracked files.",
+            'options' => array("Ignore untracked files" => 'true',
+                               "Report any untracked files" => 'false'),
+            'default'=>'false'),
         'GitStatusDebug' => array(
             'label'=>'Debug mode',
             'description'=>"Whether to print debug messages.  Note that cron will send email only when there is output.  (The plugin/task does not itself directly send email.)",
