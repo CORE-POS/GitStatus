@@ -28,7 +28,7 @@ class GitStatus extends COREPOS\Fannie\API\FanniePlugin
                                "Fail late, i.e. run all checks even if some fail" => 'false'),
             'default'=>'false'),
         'GitStatusIgnoreUntracked' => array(
-            'label'=>'Ignore untracked',
+            'label'=>'Untracked files',
             'description'=>"Whether to report, or ignore, untracked files.",
             'options' => array("Ignore untracked files" => 'true',
                                "Report any untracked files" => 'false'),
